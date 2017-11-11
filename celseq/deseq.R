@@ -44,8 +44,7 @@ for (fac in 1:length(contrasts)) {
   res <- results( dds, contrast = currcon )
   
   pdf( paste0("output/", currcon[2], "_vs_", currcon[3], "_MAPlot.pdf" ) )
-  DESeq2::plotMA( res, main = paste0( currcon[2], " vs ", currcon[3] ),
-                  ylim = c( -5, 5 ), alpha = fdr )
+  DESeq2::plotMA( res, main = paste0( currcon[2], " vs ", currcon[3] ), ylim = c( -5, 5 ), alpha = fdr )
   dev.off()
   
   # All differential genes
@@ -82,17 +81,21 @@ for (fac in 1:length(contrasts)) {
   ntopGO = 20
   overGO = diff_GO[order(diff_GO$over_represented_pvalue),][1:ntopGO,]
   overGO = overGO[overGO$over_represented_pvalue < fdr, ]
+  overGO = overGO[complete.cases(overGO),]
   overGO$term = factor(overGO$term, levels=rev(overGO$term))
   underGO = diff_GO[order(diff_GO$under_represented_pvalue),][1:ntopGO,]
   underGO = underGO[underGO$under_represented_pvalue < fdr, ]
+  underGO = underGO[complete.cases(underGO),]
   underGO$term = factor(underGO$term, levels=rev(underGO$term))
   pdf( paste0("output/", currcon[2], "_vs_", currcon[3], "_GO.pdf" ) )
-  ggplot(data=overGO, aes(x=term, y=-log(over_represented_pvalue), fill=term)) + 
+  p = ggplot(data=overGO, aes(x=term, y=-log(over_represented_pvalue))) + 
     geom_col() + coord_flip() + ggtitle("Overrepresented GO Terms") + 
     theme(legend.position="none")
-  ggplot(data=underGO, aes(x=term, y=-log(under_represented_pvalue), fill=term)) + 
+  print(p)
+  p = ggplot(data=underGO, aes(x=term, y=-log(under_represented_pvalue))) + 
     geom_col() + coord_flip() + ggtitle("Underrepresented GO Terms") + 
     theme(legend.position="none")
+  print(p)
   dev.off()
 }
   
