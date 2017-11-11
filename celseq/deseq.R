@@ -43,7 +43,7 @@ for (fac in 1:length(contrasts)) {
   currcon <- contrasts[[fac]]
   res <- results( dds, contrast = currcon )
   
-  pdf( paste0("output/", currcon[2], "_vs_", currcon[3], ".pdf" ) )
+  pdf( paste0("output/", currcon[2], "_vs_", currcon[3], "_MAPlot.pdf" ) )
   DESeq2::plotMA( res, main = paste0( currcon[2], " vs ", currcon[3] ),
                   ylim = c( -5, 5 ), alpha = fdr )
   dev.off()
@@ -68,28 +68,9 @@ for (fac in 1:length(contrasts)) {
                       all.x = T )
   all.anno2 <- all.anno2[ match( all.genes[,1], all.anno2$Ensembl ), ] # reorder the annotation by LFC order
   all.anno.wStats <- data.frame( all.anno2, all )
-  write.csv( all.anno.wStats, paste0("output/", currcon[2], "_vs_", currcon[3], "_FDR", fdr, "_ALL.csv" ),
+  write.csv( all.anno.wStats, paste0("output/", currcon[2], "_vs_", currcon[3], "_FDR", fdr, "_Genes.csv" ),
                sep="\t", quote=F, row.names=F, col.names=T )
-  write.csv( all.anno.wStats[,2], paste0("output/", currcon[2], "_vs_", currcon[3], "_FDR", fdr, "_ALL_GeneList.csv" ),
-               sep="\t", quote=F, row.names=F, col.names=F )
   
-  # Upregulated genes only
-  up.anno.wStats <- subset(all.anno.wStats, padj < fdr & log2FoldChange > lfc )
-  up.anno.wStats <- up.anno.wStats[ order( up.anno.wStats$log2FoldChange, decreasing = T ), ]
-  
-  write.csv( up.anno.wStats, paste0("output/", currcon[2], "_vs_", currcon[3], "_FDR", fdr, "_up.csv" ),
-               sep="\t", quote=F, row.names=F, col.names=T )
-  write.csv( up.anno.wStats[,2], paste0("output/", currcon[2], "_vs_", currcon[3], "_FDR", fdr, "_up_GeneList.csv" ),
-               sep="\t", quote=F, row.names=F, col.names=F )
-  
-  # Downregulated genes only
-  down.anno.wStats <- subset(all.anno.wStats, padj < fdr & log2FoldChange < lfc )
-  down.anno.wStats <- down.anno.wStats[ order( down.anno.wStats$log2FoldChange, decreasing = F ), ]
-  
-  write.csv( down.anno.wStats, paste0("output/", currcon[2], "_vs_", currcon[3], "_FDR", fdr, "_down.csv" ),
-               sep="\t", quote=F, row.names=F, col.names=T )
-  write.csv( down.anno.wStats[,2], paste0("output/", currcon[2], "_vs_", currcon[3], "_FDR", fdr, "_down_GeneList.csv" ),
-               sep="\t", quote=F, row.names=F, col.names=F )
   #Differential Gene Ontologies
   DE_genes <- as.integer(res$padj < fdr)
   names(DE_genes) <- rownames(res)
@@ -98,5 +79,20 @@ for (fac in 1:length(contrasts)) {
   #all.go <- getgo(rows, "mm9", "geneSymbol",fetch.cats=c("GO:CC","GO:BP","GO:MF"))
   write.csv( diff_GO, paste0("output/", currcon[2], "_vs_", currcon[3], "_FDR", fdr, "_GO.csv" ),
              sep="\t", quote=F, row.names=F, col.names=T )
+  ntopGO = 20
+  overGO = diff_GO[order(diff_GO$over_represented_pvalue),][1:ntopGO,]
+  overGO = overGO[overGO$over_represented_pvalue < fdr, ]
+  overGO$term = factor(overGO$term, levels=rev(overGO$term))
+  underGO = diff_GO[order(diff_GO$under_represented_pvalue),][1:ntopGO,]
+  underGO = underGO[underGO$under_represented_pvalue < fdr, ]
+  underGO$term = factor(underGO$term, levels=rev(underGO$term))
+  pdf( paste0("output/", currcon[2], "_vs_", currcon[3], "_GO.pdf" ) )
+  ggplot(data=overGO, aes(x=term, y=-log(over_represented_pvalue), fill=term)) + 
+    geom_col() + coord_flip() + ggtitle("Overrepresented GO Terms") + 
+    theme(legend.position="none")
+  ggplot(data=underGO, aes(x=term, y=-log(under_represented_pvalue), fill=term)) + 
+    geom_col() + coord_flip() + ggtitle("Underrepresented GO Terms") + 
+    theme(legend.position="none")
+  dev.off()
 }
   
